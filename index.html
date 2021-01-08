@@ -20,7 +20,7 @@
     	window.onload= function(){
     		$('#question_c').hide();
     		$.ajax({
-				type: "POST",
+				type: "GET",
 				url: "aws.txt",
 				success: function(msg){
 					var array_questions = msg.split("\rQ");
