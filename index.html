@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AWS SAP TEST</title>
+<script src="js/jquery.min.js"></script>
+<script src="js/js-sdk/md5.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+    $(document).ready(function() {
+    	var questions = [];
+    	var questions_c = [];
+    	var answers = [];
+    	var actualQuestions = [];
+    	var hasAnswered = [];
+    	var actualCount = 50;
+    	var correctCount = 0;
+
+    	window.onload= function(){
+    		$('#question_c').hide();
+    		$.ajax({
+				type: "POST",
+				url: "aws.txt",
+				success: function(msg){
+					var array_questions = msg.split("\rQ");
+					for (var key in array_questions) {
+						var value = array_questions[key].trim();
+						var question_no = value.substr(0, value.indexOf("."))
+					    questions[question_no] = array_questions[key];
+					}
+					$.each(questions,function(i, val){
+						if (val == undefined) return true;
+				    	$("#num").append("<option>" + i +  "</option>");
+				  	});
+					
+					// for (var key in array_questions) {
+					// 	if (key > 2) break;
+				 //    	var appid = '20210101000661108';
+					// 	var appkey = 'y5YkezbdHGrxsU0ZKV1w';
+					// 	var salt = (new Date).getTime();
+					// 	var query = array_questions[key];
+					// 	var from = 'en';
+					// 	var to = 'zh';
+					// 	var str1 = appid + query + salt +appkey;
+					// 	var sign = MD5(str1);
+					//     $.ajax({
+					// 	    url: 'http://api.fanyi.baidu.com/api/trans/vip/translate',
+					// 	    type: 'get',
+					// 	    dataType: 'jsonp',
+					// 	    data: {
+					// 	        q: query,
+					// 	        appid: appid,
+					// 	        salt: salt,
+					// 	        from: from,
+					// 	        to: to,
+					// 	        sign: sign
+					// 	    },
+					// 	    success: function (data) {
+					// 	        $("#translate_section").append(data.trans_result[0].dst);
+					// 	    } 
+					// 	});
+					// }
+					showQuestion();
+				}
+			});
+
+    		$.ajax({
+				type: "POST",
+				url: "aws_answer.txt",
+				success: function(msg){
+					var array_answers = msg.split("\n");
+					for (var key in array_answers) {
+						var value = array_answers[key];
+						var answer_no = value.substr(0, value.indexOf("."))
+					    answers[answer_no] = array_answers[key];
+					}
+				}
+			});
+
+			$.ajax({
+				type: "POST",
+				url: "aws_c.txt",
+				success: function(msg){
+					var array_questions = msg.split("$$$$$$$$");
+					for (var key in array_questions) {
+						var value = array_questions[key].trim();
+						var question_no = value.substr(0, value.indexOf("."))
+					    questions_c[question_no] = array_questions[key];
+					}
+					showQuestion();
+				}
+			});
+    	}
+    	
+    	$("#mode").change(function(){
+    		$('#num').html('');
+    		$('#question_section').html('');
+    		$('#question_c').html('');
+    		$('#answer_section').html('');
+    		$('#input_section span:eq(0)').html('');
+    		$("#results").html('');
+    		$("#score").html('');
+    		hasAnswered = [];
+    		correctCount = 0;
+    		if ($('#mode').val() == '1') {
+    			actualQuestions = getRandomQuestions(questions, actualCount);
+    			$.each(actualQuestions,function(i, val){
+					if (val == undefined) return true;
+			    	$("#num").append("<option>" + val +  "</option>");
+			  	});
+    		} else {
+    			$.each(questions,function(i, val){
+					if (val == undefined) return true;
+			    	$("#num").append("<option>" + i +  "</option>");
+			  	});
+    		}
+    		showQuestion();
+		});
+    	$("#num").change(function(){
+    		showQuestion();
+		});
+		$("#translate").change(function(){
+			if ($('#translate:checkbox:checked').length == 1) {
+				$('#question_c').show();
+				$('#question_section').css('width', "50%");
+				$('#question_c').css('width', "45%");
+			} else {
+				$('#question_section').css('width', "100%");
+				$('#question_c').hide();
+			}
+		});
+		$("#back").click(function(){
+			var num = parseInt($('#num').val());
+			if ($("#mode").val() == '0' && num == 1) return;
+			if ($("#mode").val() == '1' && actualQuestions[actualQuestions.indexOf(num) - 1] == undefined) return;
+			if ($("#mode").val() == '0') $('#num').val(getQuestionNo(num, false));
+			if ($("#mode").val() == '1') $('#num').val(actualQuestions[actualQuestions.indexOf(num) - 1]);
+			showQuestion();
+  		});
+		$("#next").click(function(){
+			if ($('#answer_section').html() == "")
+			{
+				$("#submit").click();
+				return;
+			}
+			var num = parseInt($('#num').val());
+			if ($("#mode").val() == '0' && num >= 375) return;
+			if ($("#mode").val() == '1' && actualQuestions[actualQuestions.indexOf(num) + 1] == undefined) return;
+			if ($("#mode").val() == '0') $('#num').val(getQuestionNo(num, true));
+			if ($("#mode").val() == '1') $('#num').val(actualQuestions[actualQuestions.indexOf(num) + 1]);
+			showQuestion();
+  		});
+		$("#submit").click(function(){
+			var num = parseInt($('#num').val());
+			if (num > 375) return;
+			var answer = num + "." + getCheckedAnswer();
+			var color = "";
+			if (answer != answers[num]) {
+				$('#showAnswer').html("Incorrect");
+				$('#showAnswer').css('color', 'red');
+				color = "red";
+			} else {
+				
+				$('#showAnswer').html("Correct");
+				$('#showAnswer').css('color', 'green');
+				color = "green";
+			}
+			$('#answer_section').html(answers[num]);
+
+			if (hasAnswered.indexOf(num) < 0) {
+				correctCount = (color == "red") ? correctCount : correctCount + 1;
+				if (hasAnswered.length % 20 != 0) {
+					var tr = $("#results tr:last");
+					$("#results tr:last").append('<td style="color:' + color + '">' + answers[num] + '</td>'); 
+				} else {
+					$("#results").append('<tr><td style="color:' + color + '">' + answers[num] + '</td></tr>'); 
+				}
+			}
+			if (hasAnswered.indexOf(num) < 0) hasAnswered.push(num);
+			if (correctCount / hasAnswered.length <= 0.75) {
+				$('#score').css('color', 'red');
+			} else {
+				$('#score').css('color', 'green');
+			}
+			$("#score").html('Score: ' + correctCount + '/' + hasAnswered.length);
+			
+  		});
+  		function showQuestion() {
+  			$('#answer_section').html('');
+  			$('#showAnswer').html('');
+  			$('#answer').val('');
+  			var num  = parseInt($('#num').val());
+  			$('#num').val(num);
+
+			questionText = repleaceText("\t", questions[num]);
+			$('#question_section').html(questionText);
+			$('#question_c').html(repleaceText("", questions_c[num]));
+
+			$("#input_section span:eq(0)").html('');
+			$("#input_section span:eq(0)").append("<label><input name='answer' type='checkbox' value='A'>A</label>");
+			$("#input_section span:eq(0)").append("<label><input name='answer' type='checkbox' style='margin-left:20px;' value='B'>B</label>");
+			$("#input_section span:eq(0)").append("<label><input name='answer' type='checkbox' style='margin-left:20px;' value='C'>C</label>");
+			$("#input_section span:eq(0)").append("<label><input name='answer' type='checkbox' style='margin-left:20px;' value='D'>D</label>");
+			if (questionText.indexOf('<br/>E.') > -1) {
+				$("#input_section span:eq(0)").append("<label><input name='answer' type='checkbox' style='margin-left:20px;' value='E'>E</label>");
+			}
+			if (questionText.indexOf('<br/>F.') > -1) {
+				$("#input_section span:eq(0)").append("<label><input name='answer' type='checkbox' style='margin-left:20px;' value='F'>F</label>");
+			}
+  		}
+
+  		function repleaceText(str, txt) {
+  			if (txt == undefined) return;
+			var questionText = txt.replace("A." + str, '<br/><br/>A. ');
+			questionText = questionText.replace("B." + str, '<br/>B. ');
+			questionText = questionText.replace("C." + str, '<br/>C. ');
+			questionText = questionText.replace("D." + str, '<br/>D. ');
+			questionText = questionText.replace("E." + str, '<br/>E. ');
+			questionText = questionText.replace("F." + str, '<br/>F. ');
+			return questionText;
+  		}
+
+  		function getRandomQuestions(arr, maxNum) {
+			var nums = [];
+			var arrLength = arr.length;
+			for (var i = 0; i < arrLength; i++) {
+				var Rand = arr.length;
+				var number = Math.floor(Math.random() * arr.length);
+				var num = getQuestionNo(number - 1, true);
+				if ($.inArray(num, nums) < 0) nums.push(num);
+
+				if (nums.length == maxNum) {
+					return nums;
+				}
+			}
+		}
+		function getQuestionNo(num, isnext)  {
+			while(true) {
+				(isnext) ? num++ : num--;
+				if (questions[num] != undefined) {
+  					break;
+  				}
+  			}
+  			return num;
+		}
+		function getCheckedAnswer()  {
+			var str = "";
+			$('#input_section input:checkbox:checked').each(function() {
+				str += $(this).val();
+			});
+  			return str;
+		}
+	});
+
+</script>
+<div>
+	<label style="font-size: 20px;">Select Test Mode</label>
+	<select id="mode">
+	  <option value ="0">All Questions</option>
+	  <option value ="1">Actual Test</option>
+	</select>
+	<label><input id='translate' type='checkbox' style='margin-left:20px;' value='1'>Translate</label>
+</div>
+<br/>
+<div>
+	<label style="font-size: 20px;">Question</label>
+　　<select style="width: 80px;" id="num"></select>
+	<span style="margin-left: 20px; font-weight: bold;" id="score"></span>
+</div>
+<br/>
+<div style="height: 600px;overflow:auto;">
+	<div style="display:inline-flex;" id="question_section"></div>
+	<div style="display:inline-flex;margin-left: 20px;" id="question_c"></div>
+</div>
+
+<div style="height: 40px;font-size: 24px; margin-top: 10px;">
+	<label style="font-size: 20px;">Answer</label>
+	<div style="display:inline; color: blue;" id="answer_section"></div>
+</div>
+<br/>
+<div id="input_section">
+	<span></span>
+	<button id="submit" style="margin-left: 20px;" type="button">Submit</button>
+	<span style="font-weight: bold;" id="showAnswer"></span>
+</div>
+<br/>
+<button id="back" type="button">Back</button>
+<button id="next" type="button">Next</button>
+
+<div style="margin-top: 20px;" id="results_section">
+	<table border="1" id="results">
+	</table>
+</div>
+
+
+
+</body>
+</html>
