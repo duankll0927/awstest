@@ -21,7 +21,7 @@
     		$('#question_c').hide();
     		$.ajax({
 				type: "GET",
-				url: "aws.txt",
+				url: "source/aws_question.txt",
 				success: function(msg){
 					var array_questions = msg.split("\rQ");
 					for (var key in array_questions) {
@@ -66,8 +66,8 @@
 			});
 
     		$.ajax({
-				type: "POST",
-				url: "aws_answer.txt",
+				type: "GET",
+				url: "source/aws_answer.txt",
 				success: function(msg){
 					var array_answers = msg.split("\n");
 					for (var key in array_answers) {
@@ -79,13 +79,13 @@
 			});
 
 			$.ajax({
-				type: "POST",
-				url: "aws_c.txt",
+				type: "GET",
+				url: "source/aws_question_c.txt",
 				success: function(msg){
 					var array_questions = msg.split("$$$$$$$$");
 					for (var key in array_questions) {
 						var value = array_questions[key].trim();
-						var question_no = value.substr(0, value.indexOf("."))
+						var question_no = value.substr(0, value.indexOf("。"))
 					    questions_c[question_no] = array_questions[key];
 					}
 					showQuestion();
@@ -192,10 +192,17 @@
   			$('#answer').val('');
   			var num  = parseInt($('#num').val());
   			$('#num').val(num);
-
-			questionText = repleaceText("\t", questions[num]);
+  			
+			questionText = repleaceText(".\t", questions[num]);
+			if (questionText == undefined) return;
 			$('#question_section').html(questionText);
-			$('#question_c').html(repleaceText("", questions_c[num]));
+
+			if (num == 170) {
+				$('#main-page').append("<image style='30%' src='images/170.png'>");
+  			} else {
+				$('#main-page img').hide();
+  			}
+			$('#question_c').html(repleaceText("。", questions_c[num]));
 
 			$("#input_section span:eq(0)").html('');
 			$("#input_section span:eq(0)").append("<label><input name='answer' type='checkbox' value='A'>A</label>");
@@ -212,12 +219,12 @@
 
   		function repleaceText(str, txt) {
   			if (txt == undefined) return;
-			var questionText = txt.replace("A." + str, '<br/><br/>A. ');
-			questionText = questionText.replace("B." + str, '<br/>B. ');
-			questionText = questionText.replace("C." + str, '<br/>C. ');
-			questionText = questionText.replace("D." + str, '<br/>D. ');
-			questionText = questionText.replace("E." + str, '<br/>E. ');
-			questionText = questionText.replace("F." + str, '<br/>F. ');
+			var questionText = txt.replace("A" + str, '<br/><br/>A. ');
+			questionText = questionText.replace("B" + str, '<br/>B. ');
+			questionText = questionText.replace("C" + str, '<br/>C. ');
+			questionText = questionText.replace("D" + str, '<br/>D. ');
+			questionText = questionText.replace("E" + str, '<br/>E. ');
+			questionText = questionText.replace("F" + str, '<br/>F. ');
 			return questionText;
   		}
 
@@ -269,7 +276,7 @@
 	<span style="margin-left: 20px; font-weight: bold;" id="score"></span>
 </div>
 <br/>
-<div style="height: 600px;overflow:auto;">
+<div id="main-page" style="height: 600px;overflow:auto;">
 	<div style="display:inline-flex;" id="question_section"></div>
 	<div style="display:inline-flex;margin-left: 20px;" id="question_c"></div>
 </div>
